@@ -42,4 +42,14 @@ class DBHelper {
     final db = await database;
     return await db.query('workouts');
   }
+
+  Future<int> updateWorkout(Map<String, dynamic> workout) async {
+    final db = await database;
+    return await db.update(
+      'workouts',
+      workout,
+      where: 'id = ?',
+      whereArgs: [workout['id']],
+    );
+  }
 }

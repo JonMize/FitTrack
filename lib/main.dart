@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:fit_track/WorkoutPage.dart';
+import 'workout_page.dart';
+import 'workout_list_page.dart'; // Import the new workout list page
 
 void main() {
   runApp(MyApp());
@@ -39,8 +40,13 @@ class HomePage extends StatelessWidget {
               child: Text('Workout'),
             ),
             ElevatedButton(
-              onPressed: () {},
-              child: Text('Progress'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => WorkoutListPage()),
+                );
+              },
+              child: Text('View Previous Workouts'),
             ),
             ElevatedButton(
               onPressed: () {},
