@@ -9,35 +9,109 @@ class WorkoutPage extends StatefulWidget {
 class _WorkoutPageState extends State<WorkoutPage> {
   final DBHelper _dbHelper = DBHelper();
   final _formKey = GlobalKey<FormState>();
-  String _exercise = '';
-  int _weight = 0;
-  int _reps = 0;
 
-  List<Map<String, dynamic>> _workouts = [];
+  List<Map<String, dynamic>> _sets = [];
 
   @override
   void initState() {
     super.initState();
-    _loadWorkouts();
+    _addSet(); // Add the first set row when the page is loaded
   }
 
-  void _loadWorkouts() async {
-    List<Map<String, dynamic>> workouts = await _dbHelper.getWorkouts();
+  // Add a new set (exercise, weight, reps) row
+  void _addSet() {
     setState(() {
-      _workouts = workouts;
+      _sets.add({
+        'exercise': '',
+        'weight': 0,
+        'reps': 0,
+      });
     });
   }
 
-  void _addWorkout() async {
+  // Save the entire workout to the database
+  void _finishWorkout() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      await _dbHelper.insertWorkout({
-        'exercise': _exercise,
-        'weight': _weight,
-        'reps': _reps,
-      });
-      _loadWorkouts();
+
+      // Get the current date and format it for the workout label
+      DateTime now = DateTime.now();
+      String formattedDate =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} "
+          "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
+
+      print("Saving workout for date: $formattedDate");
+      print("Workout details: $_sets");
+
+      // Save each set (exercise, weight, reps) along with the date
+      for (var set in _sets) {
+        await _dbHelper.insertWorkout({
+          'exercise': set['exercise'],
+          'weight': set['weight'],
+          'reps': set['reps'],
+          'date': formattedDate, // The date label for this workout
+        });
+      }
+
+      // After saving the workout, return to the home page
+      Navigator.popUntil(context, (route) => route.isFirst);
     }
+  }
+
+  // Function to show an edit dialog
+  void _editSet(int index) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final exerciseController =
+            TextEditingController(text: _sets[index]['exercise']);
+        final weightController =
+            TextEditingController(text: _sets[index]['weight'].toString());
+        final repsController =
+            TextEditingController(text: _sets[index]['reps'].toString());
+
+        return AlertDialog(
+          title: Text('Edit Set'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: exerciseController,
+                decoration: InputDecoration(labelText: 'Exercise'),
+              ),
+              TextField(
+                controller: weightController,
+                decoration: InputDecoration(labelText: 'Weight (kg)'),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: repsController,
+                decoration: InputDecoration(labelText: 'Reps'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  // Update the set data immediately upon saving
+                  _sets[index]['exercise'] = exerciseController.text;
+                  _sets[index]['weight'] = int.parse(weightController.text);
+                  _sets[index]['reps'] = int.parse(repsController.text);
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Save'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -45,75 +119,83 @@ class _WorkoutPageState extends State<WorkoutPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Workout'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.home),
+            onPressed: () {
+              Navigator.popUntil(context, (route) => route.isFirst);
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Exercise'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter an exercise';
-                      }
-                      return null;
-                    },
-                    onSaved: (value) {
-                      _exercise = value!;
-                    },
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Weight (kg)'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || int.tryParse(value) == null) {
-                        return 'Please enter a valid weight';
-                      }
-                      return null;
-                    },
-                    onSaved: (value) {
-                      _weight = int.parse(value!);
-                    },
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Reps'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || int.tryParse(value) == null) {
-                        return 'Please enter a valid number of reps';
-                      }
-                      return null;
-                    },
-                    onSaved: (value) {
-                      _reps = int.parse(value!);
-                    },
-                  ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _addWorkout,
-                    child: Text('Add Workout'),
-                  ),
-                ],
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _sets.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: GestureDetector(
+                        onTap: () =>
+                            _editSet(index), // Make the row tappable to edit
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: _sets[index]['exercise'],
+                                decoration:
+                                    InputDecoration(labelText: 'Exercise'),
+                                readOnly:
+                                    true, // Make it read-only to force edit through dialog
+                                onTap: () =>
+                                    _editSet(index), // Open edit dialog on tap
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: _sets[index]['weight'].toString(),
+                                decoration:
+                                    InputDecoration(labelText: 'Weight (kg)'),
+                                readOnly: true, // Make it read-only
+                                onTap: () =>
+                                    _editSet(index), // Open edit dialog on tap
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: _sets[index]['reps'].toString(),
+                                decoration: InputDecoration(labelText: 'Reps'),
+                                readOnly: true, // Make it read-only
+                                onTap: () =>
+                                    _editSet(index), // Open edit dialog on tap
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-            SizedBox(height: 20),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _workouts.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(_workouts[index]['exercise']),
-                    subtitle: Text(
-                        'Weight: ${_workouts[index]['weight']} kg, Reps: ${_workouts[index]['reps']}'),
-                  );
-                },
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _addSet, // Change to "Add Set"
+                child: Text('Add Set'),
               ),
-            ),
-          ],
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _finishWorkout,
+                child: Text('Finish Workout'),
+              ),
+            ],
+          ),
         ),
       ),
     );

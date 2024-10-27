@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'workout_page.dart';
-import 'workout_list_page.dart'; // Import the new workout list page
+import 'view_previous_workouts.dart'; // Ensure this is imported
+import 'share_workouts.dart'; // Import the new share workouts page
 
 void main() {
   runApp(MyApp());
@@ -14,12 +15,12 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: HomePage(),
+      home: MyHomePage(),
     );
   }
 }
 
-class HomePage extends StatelessWidget {
+class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,18 +44,22 @@ class HomePage extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => WorkoutListPage()),
+                  MaterialPageRoute(
+                      builder: (context) => ViewPreviousWorkoutsPage()),
                 );
               },
               child: Text('View Previous Workouts'),
             ),
             ElevatedButton(
-              onPressed: () {},
-              child: Text('Nutrition'),
-            ),
-            ElevatedButton(
-              onPressed: () {},
-              child: Text('Settings'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          ShareWorkoutsPage()), // New button for sharing workouts
+                );
+              },
+              child: Text('Share Workouts'),
             ),
           ],
         ),
