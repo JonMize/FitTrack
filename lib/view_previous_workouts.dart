@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'db_helper.dart';
 import 'workout_detail_page.dart';
 
-class WorkoutListPage extends StatefulWidget {
+class ViewPreviousWorkoutsPage extends StatefulWidget {
   @override
-  _WorkoutListPageState createState() => _WorkoutListPageState();
+  _ViewPreviousWorkoutsPageState createState() =>
+      _ViewPreviousWorkoutsPageState();
 }
 
-class _WorkoutListPageState extends State<WorkoutListPage> {
+class _ViewPreviousWorkoutsPageState extends State<ViewPreviousWorkoutsPage> {
   final DBHelper _dbHelper = DBHelper();
   List<Map<String, dynamic>> _workouts = [];
 
@@ -18,7 +19,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   }
 
   void _loadWorkouts() async {
-    List<Map<String, dynamic>> workouts = await _dbHelper.getWorkouts();
+    final workouts = await _dbHelper.getWorkouts();
     setState(() {
       _workouts = workouts;
     });
@@ -41,16 +42,15 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
       body: ListView.builder(
         itemCount: _workouts.length,
         itemBuilder: (context, index) {
+          String workoutDate = _workouts[index]['date'];
           return ListTile(
-            title: Text(_workouts[index]['exercise']),
-            subtitle: Text(
-                'Weight: ${_workouts[index]['weight']} kg, Reps: ${_workouts[index]['reps']}'),
+            title: Text('Workout on $workoutDate'),
+            trailing: Icon(Icons.arrow_forward),
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      WorkoutDetailPage(workoutId: _workouts[index]['id']),
+                  builder: (context) => WorkoutDetailPage(date: workoutDate),
                 ),
               );
             },
